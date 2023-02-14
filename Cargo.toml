@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 midasio = "0.4.1"
 itertools = "*"
+clap = { version = "4.1.4", features = ["derive"] }
