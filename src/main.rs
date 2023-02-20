@@ -30,5 +30,5 @@ fn main() {
     let file_view = FileView::try_from(&contents[..]).unwrap();
     let sorter = sort::DataSort::new(args.output_file.to_string(), args.chunk_size);
     let mut data = sorter.sort_loop(&file_view);
-    data.write_data(&args.output_file);
+    data.write_data();
 }

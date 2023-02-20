@@ -1,6 +1,7 @@
 use crate::bitmasks;
 use crate::WriteData;
 use std::fs::File;
+use std::io::BufWriter;
 use std::io::Write;
 /* General Outline of how this works:
 
@@ -122,20 +123,20 @@ impl MDPPEvent {
 pub struct MDPPBank {
     pub events: Vec<MDPPEvent>,
     current_event: usize,
-    chunk_size: usize,
-    file_created: bool,
+    file: BufWriter<File>,
+    first_call: bool,
 }
 
 // see manual for a break down
 impl MDPPBank {
     // create a new MDPP bank object that initialize with a chunk size.
-    pub fn new(chunk_size: usize) -> Self {
+    pub fn new(filename: &str) -> Self {
         MDPPBank {
-            events: Vec::with_capacity(chunk_size),
+            events: Vec::with_capacity(100000),
             current_event: 0,
+            file: BufWriter::new(File::create(filename).unwrap()),
             // two variables that handle the file dumping.
-            chunk_size,
-            file_created: false,
+            first_call: true,
         }
     }
 
@@ -197,30 +198,17 @@ impl MDPPBank {
 
     pub fn clear_data(&mut self) {
         self.current_event = 0;
-        self.events = Vec::with_capacity(self.chunk_size);
+        self.events.clear();
     }
 }
 
 // here is the write function for a csv.
 impl WriteData for MDPPBank {
-    fn write_data(&mut self, filename: &str) {
-        // open the file create it if necessary
-        let file_option = if !self.file_created {
-            File::create(filename)
-        } else {
-            File::options().append(true).open(filename)
-        };
-        // unpack the option
-        let mut f = if let Ok(i) = file_option {
-            i
-        } else {
-            panic!("Issue creating output file!")
-        };
-
+    fn write_data(&mut self) {
         // write the csv header if we haven't already
-        if !self.file_created {
-            writeln!(f, "module,channel,adc,tdc,pileup,overlow,event");
-            self.file_created = true;
+        if self.first_call {
+            writeln!(self.file, "module,channel,adc,tdc,pileup,overlow,event");
+            self.first_call = false;
         }
 
         // loop through events
@@ -228,14 +216,14 @@ impl WriteData for MDPPBank {
             // loop through hits
             for (&chan, chan_hit) in event.channels.iter().zip(&event.channel_hits) {
                 writeln!(
-                    f,
+                    self.file,
                     "{},{},{},{},{},{},{}",
                     event.module_id,
                     chan,
                     chan_hit.adc_value,
                     chan_hit.tdc_value,
-                    chan_hit.pile_up as u8,
-                    chan_hit.overflow as u8,
+                    chan_hit.pile_up,
+                    chan_hit.overflow,
                     event.event_num
                 );
             }
