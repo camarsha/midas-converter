@@ -7,6 +7,7 @@ mod sort;
 mod write_data;
 use clap::Parser;
 use std::env;
+use std::process::Command;
 
 // I ripped this straight from the clap documentation
 #[derive(Parser, Debug)]
@@ -22,13 +23,32 @@ fn main() {
     // parse the command line args
     let args = Args::parse();
 
-    //    let output_file = &output_file.replace(".mid", ".csv");
+    // decompress the file in the most janky way possible
+    let filename = if args.input_file.contains("lz4") {
+        println!("Hello?");
+        Command::new("lz4")
+            .arg("-d")
+            .arg("-f")
+            .arg(args.input_file.clone())
+            .status()
+            .expect("Decompression failed");
+        println!("{}", args.input_file.replace(".lz4", ""));
+        args.input_file.replace(".lz4", "")
+    } else {
+        args.input_file.clone()
+    };
 
     // see midasio package documentation for details
-    let contents = fs::read(args.input_file).unwrap();
-    // lets try to decompress the file
+    let contents = fs::read(&filename).unwrap();
     let file_view = FileView::try_from(&contents[..]).unwrap();
     let sorter = sort::DataSort::new(args.output_file.to_string(), args.chunk_size);
     let mut data = sorter.sort_loop(&file_view);
     data.write_data();
+    // remove file if we created it
+    if args.input_file.contains("lz4") {
+        Command::new("rm")
+            .arg(filename)
+            .status()
+            .expect("Failed to delete file.");
+    }
 }
