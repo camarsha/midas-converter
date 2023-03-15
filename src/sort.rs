@@ -1,37 +1,40 @@
-use crate::bitmasks;
-use crate::mdpp16_scp;
-use crate::mdpp16_scp::MDPPBank;
+use crate::mdpp_bank::MDPPBank;
+use crate::module_config;
 use crate::write_data::WriteData;
-use itertools::Itertools;
-use midasio::read::data_bank::Bank32View;
 use midasio::read::file::FileView;
-use midasio::DataType;
-use std::error::Error;
-use std::path::Path;
 
 pub struct DataSort {
     filename: String,
     chunk_size: usize,
+    config_file: String,
 }
 
 impl DataSort {
-    pub fn new(filename: String, chunk_size: usize) -> Self {
+    pub fn new(filename: String, chunk_size: usize, config_file: String) -> Self {
         DataSort {
             filename,
             chunk_size,
+            config_file,
         }
     }
 
     // need to add a periodic dumping of data
     pub fn sort_loop<'a>(self, file_view: &'a FileView) -> MDPPBank {
+        // load the configuration
+        let config: module_config::Config = module_config::create_config(&self.config_file);
         let mut banks = MDPPBank::new(&self.filename);
         for (event_num, event) in (*file_view).into_iter().enumerate() {
-            // select physics events
+            // select trigger events
+            println!("{}", event_num);
             if event.id() == 1 {
                 for bank in event {
-                    if bank.name() == "MDPP" {
-                        banks.parse(bank.data_slice());
-                    }
+                    let m: &module_config::Module = config
+                        .modules
+                        .iter()
+                        .find(|&m| m.name == bank.name())
+                        .unwrap();
+
+                    banks.parse(&m.mod_type.to_string(), m.nchannels, bank.data_slice());
                 }
             }
             // write data to disk if we surpass the chunk size
@@ -39,6 +42,7 @@ impl DataSort {
                 banks.write_data();
             }
         }
+        // These are the banks that are left over if we have already dumped the data.
         banks
     }
 }

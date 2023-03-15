@@ -2,7 +2,8 @@ use midasio::read::file::FileView;
 use std::fs;
 use write_data::WriteData;
 mod bitmasks;
-mod mdpp16_scp;
+mod mdpp_bank;
+mod module_config;
 mod sort;
 mod write_data;
 use clap::Parser;
@@ -15,6 +16,7 @@ use std::process::Command;
 struct Args {
     input_file: String,
     output_file: String,
+    config_file: String,
     #[arg(long, default_value_t = 100000)]
     chunk_size: usize,
 }
@@ -25,7 +27,6 @@ fn main() {
 
     // decompress the file in the most janky way possible
     let filename = if args.input_file.contains("lz4") {
-        println!("Hello?");
         Command::new("lz4")
             .arg("-d")
             .arg("-f")
@@ -41,7 +42,12 @@ fn main() {
     // see midasio package documentation for details
     let contents = fs::read(&filename).unwrap();
     let file_view = FileView::try_from(&contents[..]).unwrap();
-    let sorter = sort::DataSort::new(args.output_file.to_string(), args.chunk_size);
+    // initialize the sorter
+    let sorter = sort::DataSort::new(
+        args.output_file.to_string(),
+        args.chunk_size,
+        args.config_file.to_string(),
+    );
     let mut data = sorter.sort_loop(&file_view);
     data.write_data();
     // remove file if we created it
