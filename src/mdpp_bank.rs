@@ -255,9 +255,9 @@ impl MDPPBank {
 
     fn parse_end_event(&mut self, end_event: u32) {
         let event_num = end_event & bitmasks::THIRTY_BIT;
-        if !self.start {
-            return;
-        }
+        // if !self.start {
+        //     return;
+        // }
         self.events[self.current_event].end_event(event_num);
         self.current_event += 1;
         self.start = false;
@@ -266,7 +266,7 @@ impl MDPPBank {
     // see if this is real data or dummy events/extended timestamp
     fn check_subheader(&mut self, data_word: u32) -> bool {
         let subheader = data_word >> 28 & bitmasks::THREE_BIT;
-        let result = match subheader {
+        match subheader {
             0 => false, // dummy event
             1 => true,  // actual data
             10 => {
@@ -275,8 +275,7 @@ impl MDPPBank {
             }
 
             _ => panic!("Invalid subheader in bank word!"),
-        };
-        result
+        }
     }
 
     // handles the 16/32 qdc logic
@@ -353,19 +352,19 @@ impl MDPPBank {
         self.events[self.current_event].add_adc(channel, adc, pile_up);
     }
 
-    fn push_tdc(&mut self, nchannels: u32, channel: u32, data_word: u32) {
+    fn push_tdc(&mut self, _nchannels: u32, channel: u32, data_word: u32) {
         let tdc = data_word & bitmasks::SIXTEEN_BIT;
         self.events[self.current_event].add_tdc(channel, tdc);
     }
 
-    fn push_long(&mut self, nchannels: u32, channel: u32, data_word: u32) {
+    fn push_long(&mut self, _nchannels: u32, channel: u32, data_word: u32) {
         let long_value = data_word & bitmasks::SIXTEEN_BIT;
         self.events[self.current_event].add_long(channel, long_value);
     }
 
-    fn push_short(&mut self, nchannels: u32, channel: u32, data_word: u32) {
+    fn push_short(&mut self, _nchannels: u32, channel: u32, data_word: u32) {
         let short_value = data_word & bitmasks::SIXTEEN_BIT;
-        self.events[self.current_event].add_long(channel, short_value);
+        self.events[self.current_event].add_short(channel, short_value);
     }
 
     pub fn clear_data(&mut self) {
@@ -403,7 +402,8 @@ impl WriteData for MDPPBank {
                     chan_hit.trigger_dt_value,
                     chan_hit.pile_up,
                     event.evt_timestamp
-                );
+                )
+                .unwrap();
             }
         }
         // free the memory for the old events
