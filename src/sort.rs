@@ -25,7 +25,6 @@ impl DataSort {
         let mut banks = MDPPBank::new(&self.filename);
         for (event_num, event) in (*file_view).into_iter().enumerate() {
             // select trigger events
-            println!("{}", event_num);
             if event.id() == 1 {
                 for bank in event {
                     let m: &module_config::Module = config
