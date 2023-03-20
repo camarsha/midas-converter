@@ -21,7 +21,7 @@ pub fn event_diagnostics<'a>(file_view: &'a FileView) -> (u32, u32, u32) {
                     let data_sig = temp >> 30 & bitmasks::TWO_BIT;
                     match data_sig {
                         0 => {}
-                        1 => total_banks += 1,
+                        1 => total_headers += 1,
                         3 => total_event_ends += 1,
                         _ => panic!("Invalid Data signature in bank!"),
                     }

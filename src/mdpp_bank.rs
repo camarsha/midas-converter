@@ -250,7 +250,6 @@ impl MDPPBank {
 
     fn parse_header(&mut self, header: u32) {
         // here we create the event
-        println!("Header!");
         let module_id: u32 = header >> 16 & bitmasks::EIGHT_BIT;
         let _nwords: u32 = bitmasks::TEN_BIT;
         self.start = true;
@@ -258,7 +257,6 @@ impl MDPPBank {
     }
 
     fn parse_end_event(&mut self, end_event: u32) {
-        println!("End Event!");
         let event_num = end_event & bitmasks::THIRTY_BIT;
         // if !self.start {
         //     return;
