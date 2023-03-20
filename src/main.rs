@@ -21,7 +21,7 @@ struct Args {
     config_file: String,
     #[arg(long, default_value_t = 100000)]
     chunk_size: usize,
-    #[arg(long, short, default_value_t = true)]
+    #[arg(long, short, default_value_t = false)]
     diagnostic: bool,
 }
 
