@@ -258,9 +258,10 @@ impl MDPPBank {
 
     fn parse_end_event(&mut self, end_event: u32) {
         let event_num = end_event & bitmasks::THIRTY_BIT;
-        // if !self.start {
-        //     return;
-        // }
+        // back to handling the junk in this way
+        if !self.start {
+            return;
+        }
         self.events[self.current_event].end_event(event_num);
         self.current_event += 1;
         self.start = false;
