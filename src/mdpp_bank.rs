@@ -252,6 +252,10 @@ impl MDPPBank {
         // here we create the event
         let module_id: u32 = header >> 16 & bitmasks::EIGHT_BIT;
         let _nwords: u32 = bitmasks::TEN_BIT;
+        if self.start {
+            println!("Junk event!");
+            return;
+        }
         self.start = true;
         self.events.push(MDPPEvent::new(module_id));
     }
@@ -260,6 +264,7 @@ impl MDPPBank {
         let event_num = end_event & bitmasks::THIRTY_BIT;
         // back to handling the junk in this way
         if !self.start {
+            println!("Junk event!");
             return;
         }
         self.events[self.current_event].end_event(event_num);
