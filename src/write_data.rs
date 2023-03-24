@@ -29,7 +29,7 @@ impl WriteData for CSVFile {
         if self.first_call {
             writeln!(
                 self.file,
-                "module,channel,adc,long,short,tdc,trigger_dt,pileup,event"
+                "module,channel,adc,long,short,tdc,trigger_dt,pileup,evt_ts"
             )
             .unwrap();
             self.first_call = false;

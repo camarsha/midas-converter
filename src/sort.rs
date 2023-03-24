@@ -41,6 +41,7 @@ impl DataSort {
         pb.enable_steady_tick(Duration::from_millis(200));
         let mut events_towards_chunks: usize = 0;
         for (event_num, event) in (*file_view).into_iter().enumerate() {
+            pb.tick();
             events_towards_chunks += 1;
             // junk should now be in their own banks
             // select trigger events
@@ -69,7 +70,6 @@ impl DataSort {
                 // we iterate over the config again because we don't want the
                 // loop to own the hashmap.
                 pb.set_message(format!("Events Processed: {}", event_num));
-                pb.tick();
                 events_towards_chunks = 0;
 
                 for m in config.modules.iter() {
@@ -79,6 +79,8 @@ impl DataSort {
                     file_dumper.write_data(temp);
                 }
             }
+
+            // check if we are on the last iteration
         }
         // show progress
 
@@ -89,7 +91,5 @@ impl DataSort {
             let temp = bank_hash.get_mut(&m.name.to_string()).unwrap();
             file_dumper.write_data(temp);
         }
-
-        pb.finish_and_clear();
     }
 }
