@@ -107,9 +107,11 @@ impl MDPPHit {
 // within the same MDPP event, which should be a single Midas bank.
 pub struct MDPPEvent {
     pub module_id: u32,
-    pub evt_timestamp: u32, // depends on setup either event counter or timestamp
+    pub evt_timestamp: u64, // depends on setup either event counter or timestamp
     pub channels: Vec<u32>,
     pub channel_hits: Vec<MDPPHit>,
+    extended_ts: u32,
+    extended_ts_filled: bool,
 }
 
 impl MDPPEvent {
@@ -119,6 +121,8 @@ impl MDPPEvent {
             evt_timestamp: 0,
             channels: Vec::with_capacity(32),
             channel_hits: Vec::with_capacity(32),
+            extended_ts: 0,
+            extended_ts_filled: false,
         }
     }
 
@@ -202,7 +206,19 @@ impl MDPPEvent {
 
     // Set the event counter or timestamp
     pub fn end_event(&mut self, evt_timestamp: u32) {
-        self.evt_timestamp = evt_timestamp;
+        // go ahead and adjust the timestamp if it has been extended
+        if self.extended_ts_filled {
+            // 16 high bits are in the extended timestamp
+            self.evt_timestamp = ((self.extended_ts as u64) << 16) + evt_timestamp as u64;
+        } else {
+            self.evt_timestamp = evt_timestamp as u64;
+        }
+    }
+
+    // Set the event counter or timestamp
+    pub fn extended_ts(&mut self, timestamp: u32) {
+        self.extended_ts = timestamp;
+        self.extended_ts_filled = true;
     }
 
     // Set the event counter or timestamp
@@ -307,7 +323,7 @@ impl MDPPBank {
         match subheader {
             0 => false, // dummy event
             1 => true,  // actual data
-            10 => {
+            2 => {
                 println!("Extended TimeStamp");
                 false
             }
