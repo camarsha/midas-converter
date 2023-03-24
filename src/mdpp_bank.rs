@@ -209,7 +209,7 @@ impl MDPPEvent {
         // go ahead and adjust the timestamp if it has been extended
         if self.extended_ts_filled {
             // 16 high bits are in the extended timestamp
-            self.evt_timestamp = ((self.extended_ts as u64) * 2u64.pow(16)) + evt_timestamp as u64;
+            self.evt_timestamp = ((self.extended_ts as u64) * 2u64.pow(30)) + evt_timestamp as u64;
         } else {
             self.evt_timestamp = evt_timestamp as u64;
         }
