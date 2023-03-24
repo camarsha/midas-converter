@@ -12,3 +12,4 @@ clap = { version = "4.1.4", features = ["derive"] }
 toml = "*"
 serde = "*"
 serde_derive = "*"
+indicatif = "0.17.3"

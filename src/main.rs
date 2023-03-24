@@ -8,7 +8,6 @@ mod module_config;
 mod sort;
 mod write_data;
 use clap::Parser;
-use std::collections::HashMap;
 use std::process::exit;
 use std::process::Command;
 
@@ -68,17 +67,6 @@ fn main() {
     );
     // sort the data
     let data = sorter.sort_loop(&file_view);
-    // write out everything that remains. Let the user know something might be wrong
-    // if there are still incomplete events.
-    for (_key, mut value) in data {
-        // start signals that a header has been read, but not an end
-        // of event bank
-        if !value.start {
-            value.write_data();
-        } else {
-            println!("Malformed data is likely present. Number of event headers does not match number of end events.")
-        }
-    }
     // remove file if we created it
     if args.input_file.contains("lz4") {
         Command::new("rm")

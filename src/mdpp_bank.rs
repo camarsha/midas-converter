@@ -1,5 +1,4 @@
 use crate::bitmasks;
-use crate::WriteData;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
@@ -82,6 +81,17 @@ impl MDPPHit {
         if !self.short_filled {
             self.short_value = short_value;
             self.short_filled = true;
+        } else {
+            already_filled = true;
+        }
+        already_filled
+    }
+
+    pub fn set_trigger_dt(&mut self, trigger_dt: u32) -> bool {
+        let mut already_filled = false;
+        if !self.trigger_dt_filled {
+            self.short_value = trigger_dt;
+            self.trigger_dt_filled = true;
         } else {
             already_filled = true;
         }
@@ -194,6 +204,24 @@ impl MDPPEvent {
     pub fn end_event(&mut self, evt_timestamp: u32) {
         self.evt_timestamp = evt_timestamp;
     }
+
+    // Set the event counter or timestamp
+    pub fn add_trigger_dt(&mut self, channel: u32, trigger_dt_value: u32) {
+        let mut channel_found = false;
+        // branch that handles if the channel is already fired
+        for (i, &c) in self.channels.iter().enumerate() {
+            if channel == c {
+                self.channel_hits[i].set_trigger_dt(trigger_dt_value);
+                channel_found = true;
+            }
+        }
+        if !channel_found {
+            self.channels.push(channel);
+            self.channel_hits.push(MDPPHit::new());
+            let current_len = self.channel_hits.len() - 1;
+            self.channel_hits[current_len].set_short(trigger_dt_value);
+        }
+    }
 }
 
 /*
@@ -207,9 +235,9 @@ impl MDPPEvent {
 pub struct MDPPBank {
     pub events: Vec<MDPPEvent>,
     current_event: usize,
-    file: BufWriter<File>,
-    first_call: bool,
     pub start: bool,
+    pub stop: bool,
+    pub junk_events: i64,
 }
 /*
 
@@ -217,14 +245,13 @@ pub struct MDPPBank {
 
 impl MDPPBank {
     // create a new MDPP bank object that initialize with a chunk size.
-    pub fn new(filename: &str) -> Self {
+    pub fn new() -> Self {
         MDPPBank {
             events: Vec::with_capacity(10000000),
             current_event: 0,
-            file: BufWriter::new(File::create(filename).unwrap()),
-            // two variables that handle the file dumping.
-            first_call: true,
             start: false,
+            stop: false,
+            junk_events: 0,
         }
     }
 
@@ -253,7 +280,9 @@ impl MDPPBank {
         let module_id: u32 = header >> 16 & bitmasks::EIGHT_BIT;
         let _nwords: u32 = bitmasks::TEN_BIT;
         if self.start {
-            println!("Junk event!");
+            // this only happens if the last event is ill formed, so get rid of it.
+            self.events.pop();
+            self.junk_events += 1;
             return;
         }
         self.start = true;
@@ -264,11 +293,11 @@ impl MDPPBank {
         let event_num = end_event & bitmasks::THIRTY_BIT;
         // back to handling the junk in this way
         if !self.start {
-            println!("Junk event!");
             return;
         }
         self.events[self.current_event].end_event(event_num);
         self.current_event += 1;
+        self.stop = true;
         self.start = false;
     }
 
@@ -311,7 +340,7 @@ impl MDPPBank {
                     self.push_tdc(nchannels, channel, data_word);
                 }
 
-                2 => println!("What is this, did you turn on weird stuff?"),
+                2 => self.push_trigger_dt(nchannels, channel, data_word),
                 3 => {
                     self.push_short(nchannels, channel, data_word);
                 }
@@ -344,7 +373,7 @@ impl MDPPBank {
                     self.push_tdc(nchannels, channel, data_word);
                 }
 
-                2 => println!("What is this, did you turn on weird stuff?"),
+                2 => self.push_trigger_dt(nchannels, channel, data_word),
                 _ => panic!("Unknown event type!!"),
             }
         }
@@ -376,46 +405,13 @@ impl MDPPBank {
         self.events[self.current_event].add_short(channel, short_value);
     }
 
+    fn push_trigger_dt(&mut self, _nchannels: u32, channel: u32, data_word: u32) {
+        let trigger_dt = data_word & bitmasks::SIXTEEN_BIT;
+        self.events[self.current_event].add_trigger_dt(channel, trigger_dt);
+    }
+
     pub fn clear_data(&mut self) {
         self.current_event = 0;
         self.events.clear();
-    }
-}
-
-// here is the write function for a csv.
-impl WriteData for MDPPBank {
-    fn write_data(&mut self) {
-        // write the csv header if we haven't already
-        if self.first_call {
-            writeln!(
-                self.file,
-                "module,channel,adc,long,short,tdc,trigger_dt,pileup,event"
-            )
-            .unwrap();
-            self.first_call = false;
-        }
-
-        // loop through events
-        for event in &self.events {
-            // loop through hits
-            for (&chan, chan_hit) in event.channels.iter().zip(&event.channel_hits) {
-                writeln!(
-                    self.file,
-                    "{},{},{},{},{},{},{},{},{}",
-                    event.module_id,
-                    chan,
-                    chan_hit.adc_value,
-                    chan_hit.long_value,
-                    chan_hit.short_value,
-                    chan_hit.tdc_value,
-                    chan_hit.trigger_dt_value,
-                    chan_hit.pile_up,
-                    event.evt_timestamp
-                )
-                .unwrap();
-            }
-        }
-        // free the memory for the old events
-        self.clear_data();
     }
 }
