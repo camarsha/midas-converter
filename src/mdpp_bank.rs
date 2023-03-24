@@ -215,7 +215,7 @@ impl MDPPEvent {
         }
     }
 
-    // Set the event counter or timestamp
+    // Set the extended timestamp
     pub fn extended_ts(&mut self, timestamp: u32) {
         self.extended_ts = timestamp;
         self.extended_ts_filled = true;
@@ -324,7 +324,9 @@ impl MDPPBank {
             0 => false, // dummy event
             1 => true,  // actual data
             2 => {
-                println!("Extended TimeStamp");
+                // extended timestamp
+                let ts = data_word & bitmasks::SIXTEEN_BIT;
+                self.events[self.current_event].extended_ts(ts);
                 false
             }
 
