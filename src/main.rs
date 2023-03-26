@@ -1,6 +1,5 @@
 use midasio::read::file::FileView;
 use std::fs;
-use write_data::WriteData;
 mod bitmasks;
 mod diagnostics;
 mod mdpp_bank;
@@ -8,8 +7,12 @@ mod module_config;
 mod sort;
 mod write_data;
 use clap::Parser;
+use indicatif::ProgressBar;
+use polars::prelude::*;
+use std::path::Path;
 use std::process::exit;
 use std::process::Command;
+use std::time::Duration;
 
 // I ripped this straight from the clap documentation
 #[derive(Parser, Debug)]
@@ -18,10 +21,12 @@ struct Args {
     input_file: String,
     output_file: String,
     config_file: String,
-    #[arg(long, default_value_t = 100000)]
+    #[arg(long, default_value_t = 10000000)]
     chunk_size: usize,
     #[arg(long, short, default_value_t = false)]
     diagnostic: bool,
+    #[arg(long, short, default_value_t = false)]
+    csv: bool,
 }
 
 fn main() {
@@ -66,12 +71,52 @@ fn main() {
         args.config_file.to_string(),
     );
     // sort the data
-    let data = sorter.sort_loop(&file_view);
+    sorter.sort_loop(&file_view);
     // remove file if we created it
     if args.input_file.contains("lz4") {
         Command::new("rm")
             .arg(filename)
             .status()
             .expect("Failed to delete file.");
+    }
+    // output parquet path buffer for the parquet_sink method.
+    let output_file_wo_csv = Path::new(&format!(
+        "{}{}{}",
+        "./",
+        args.output_file.split('.').next().unwrap(),
+        ".parquet"
+    ))
+    .to_path_buf();
+    //let mut p_file = File::create(output_file_wo_csv).expect("could not create file");
+
+    // spinner while we convert
+    let pb = ProgressBar::new_spinner();
+    pb.enable_steady_tick(Duration::from_millis(200));
+    pb.tick();
+    pb.set_message("Converting to parquet...");
+    // This should stream the csv off the disk and periodically dump to the parquet file.
+    let p_w_args = ParquetWriteOptions {
+        compression: ParquetCompression::Lz4Raw,
+        statistics: false,
+        row_group_size: Some(60 * 1024 * 1024),
+        data_pagesize_limit: None,
+        maintain_order: true,
+    };
+
+    LazyCsvReader::new(&args.output_file)
+        .finish()
+        .unwrap()
+        .collect()
+        .unwrap()
+        .lazy()
+        .sink_parquet(output_file_wo_csv, p_w_args)
+        .expect("Error writing parquet file.");
+
+    pb.finish_with_message("Conversion done!");
+    if !args.csv {
+        Command::new("rm")
+            .arg(&args.output_file)
+            .status()
+            .expect("Failed to delete csv file.");
     }
 }

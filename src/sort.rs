@@ -2,10 +2,10 @@ use crate::mdpp_bank::MDPPBank;
 use crate::module_config;
 use crate::write_data::CSVFile;
 use crate::write_data::WriteData;
-use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use indicatif::ProgressBar;
 use midasio::read::file::FileView;
 use std::collections::HashMap;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub struct DataSort {
     filename: String,
