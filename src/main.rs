@@ -25,7 +25,7 @@ struct Args {
     chunk_size: usize,
     #[arg(long, short, default_value_t = false)]
     diagnostic: bool,
-    #[arg(long, short, default_value_t = false)]
+    #[arg(long, short, default_value_t = true)]
     csv: bool,
 }
 
@@ -84,7 +84,7 @@ fn main() {
         "{}{}{}",
         "./",
         args.output_file.split('.').next().unwrap(),
-        ".parquet"
+        ".feather"
     ))
     .to_path_buf();
     //let mut p_file = File::create(output_file_wo_csv).expect("could not create file");
@@ -93,24 +93,27 @@ fn main() {
     let pb = ProgressBar::new_spinner();
     pb.enable_steady_tick(Duration::from_millis(200));
     pb.tick();
-    pb.set_message("Converting to parquet...");
+    pb.set_message("Converting to feather...");
     // This should stream the csv off the disk and periodically dump to the parquet file.
-    let p_w_args = ParquetWriteOptions {
-        compression: ParquetCompression::Lz4Raw,
-        statistics: false,
-        row_group_size: Some(60 * 1024 * 1024),
-        data_pagesize_limit: None,
+    // let p_w_args = ParquetWriteOptions {
+    //     compression: ParquetCompression::Lz4Raw,
+    //     statistics: false,
+    //     row_group_size: Some(60 * 1024 * 1024),
+    //     data_pagesize_limit: None,
+    //     maintain_order: true,
+    // };
+
+    let ipc_args = IpcWriterOptions {
+        compression: None,
         maintain_order: true,
     };
 
+    // It works for ipc, weird...
     LazyCsvReader::new(&args.output_file)
         .finish()
         .unwrap()
-        .collect()
-        .unwrap()
-        .lazy()
-        .sink_parquet(output_file_wo_csv, p_w_args)
-        .expect("Error writing parquet file.");
+        .sink_ipc(output_file_wo_csv, ipc_args)
+        .expect("Error writing feather file.");
 
     pb.finish_with_message("Conversion done!");
     if !args.csv {

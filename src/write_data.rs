@@ -5,7 +5,7 @@ use std::io::Write;
 
 // This is create some amount of division between the unpacker and the writer.
 pub trait WriteData {
-    fn write_data(&mut self, bank_data: &mut MDPPBank) {}
+    fn write_data(&mut self, _bank_data: &mut MDPPBank) {}
 }
 
 pub struct CSVFile {

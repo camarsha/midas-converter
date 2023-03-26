@@ -1,7 +1,4 @@
 use crate::bitmasks;
-use std::fs::File;
-use std::io::BufWriter;
-use std::io::Write;
 
 /* This is going to be a refactoring of the ideas present in the
 original mdpp16_scp.rs file.

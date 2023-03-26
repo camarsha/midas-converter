@@ -1,10 +1,8 @@
 use serde_derive::Deserialize;
-use std::collections::HashMap;
 use std::fs;
-use std::i64;
-use toml;
 
 #[derive(Debug, Deserialize, Clone)]
+#[allow(dead_code)]
 pub struct Module {
     pub name: String,
     address: String,
