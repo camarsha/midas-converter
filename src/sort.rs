@@ -75,14 +75,8 @@ impl DataSort {
             } else if event.id() == 2 {
                 for bank in event {
                     let mut temp = ScalerBank::new();
-                    for (mut i, &val) in bank.data_slice().iter().enumerate() {
-                        if i == 32 {
-                            i -= 32;
-                            scaler_banks.push(temp);
-                            temp = ScalerBank::new();
-                        }
-                        temp.data[i] = val as u64;
-                    }
+                    temp.parse(bank.data_slice());
+                    scaler_banks.push(temp);
                 }
             }
 
