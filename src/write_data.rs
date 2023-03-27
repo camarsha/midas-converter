@@ -1,12 +1,19 @@
 use crate::mdpp_bank::MDPPBank;
+use crate::sis3820::ScalerBank;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
 
-// This is create some amount of division between the unpacker and the writer.
-pub trait WriteData {
-    fn write_data(&mut self, _bank_data: &mut MDPPBank) {}
-}
+// // enum that describes the currently implemented bank types
+// enum BankTypes {
+//     MDPPBank(MDPPBank),
+//     ScalerBank(ScalerBank),
+// }
+
+// // This is create some amount of division between the unpacker and the writer.
+// pub trait WriteData {
+//     fn write_data(&mut self, _bank_data: &mut BankTypes) {}
+// }
 
 pub struct CSVFile {
     first_call: bool,
@@ -20,11 +27,9 @@ impl CSVFile {
             file: BufWriter::new(File::create(filename).unwrap()),
         }
     }
-}
 
-// here is the write function for a csv.
-impl WriteData for CSVFile {
-    fn write_data(&mut self, bank_data: &mut MDPPBank) {
+    // here is the write function for a csv.
+    pub fn write_data(&mut self, bank_data: &mut MDPPBank) {
         // write the csv header if we haven't already
         if self.first_call {
             writeln!(
@@ -57,5 +62,50 @@ impl WriteData for CSVFile {
         }
         // free the memory for the old events
         bank_data.clear_data();
+    }
+}
+
+pub struct CSVScaler {
+    first_call: bool,
+    file: BufWriter<File>,
+}
+
+impl CSVScaler {
+    pub fn new(filename: &str) -> Self {
+        CSVScaler {
+            first_call: true,
+            file: BufWriter::new(File::create(filename).unwrap()),
+        }
+    }
+
+    fn write_header(&mut self) {
+        // write the csv header if we haven't already
+        let chan_str = (0..32)
+            .map(|i| format!("chan_{}", i))
+            .collect::<Vec<String>>()
+            .join(",");
+        if self.first_call {
+            writeln!(self.file, "{}", chan_str).unwrap();
+            self.first_call = false;
+        }
+    }
+
+    pub fn write_data(&mut self, bank_data: &mut ScalerBank) {
+        if self.first_call {
+            self.write_header();
+        }
+
+        // loop through scaler data
+        writeln!(
+            self.file,
+            "{}",
+            bank_data
+                .data
+                .iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<String>>()
+                .join(",")
+        )
+        .unwrap();
     }
 }

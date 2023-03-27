@@ -4,6 +4,7 @@ mod bitmasks;
 mod diagnostics;
 mod mdpp_bank;
 mod module_config;
+mod sis3820;
 mod sort;
 mod write_data;
 use clap::Parser;
@@ -19,7 +20,8 @@ use std::time::Duration;
 #[command(author, version, about, long_about = None)]
 struct Args {
     input_file: String,
-    output_file: String,
+    #[arg(long, short)]
+    output_file: Option<String>,
     config_file: String,
     #[arg(long, default_value_t = 10000000)]
     chunk_size: usize,
@@ -31,7 +33,21 @@ struct Args {
 
 fn main() {
     // parse the command line args
-    let args = Args::parse();
+    let mut args = Args::parse();
+    // if an output filename was not passed, then generate it from the input
+    if args.output_file.is_none() {
+        // just to remind myself later, split the string, get the first Option<element> before . with next
+        let temp_filename = format!("{}{}", args.input_file.split('.').next().unwrap(), ".csv");
+        args.output_file = Some(temp_filename);
+    }
+
+    // Now move the value out of the struct so that we don't have to jump through hoops.
+    let mut output_file = args.output_file.unwrap();
+    let scaler_output_file = format!("{}_scaler.csv", output_file.split('.').next().unwrap());
+    // if it is user supplied, make sure it has a .csv
+    if !output_file.contains(".csv") {
+        output_file = format!("{}{}", output_file, ".csv");
+    }
 
     // decompress the file in the most janky way possible
     let filename = if args.input_file.contains("lz4") {
@@ -66,7 +82,8 @@ fn main() {
 
     // initialize the sorter
     let sorter = sort::DataSort::new(
-        args.output_file.to_string(),
+        output_file.clone(),
+        scaler_output_file,
         args.chunk_size,
         args.config_file.to_string(),
     );
@@ -81,9 +98,8 @@ fn main() {
     }
     // output parquet path buffer for the parquet_sink method.
     let output_file_wo_csv = Path::new(&format!(
-        "{}{}{}",
-        "./",
-        args.output_file.split('.').next().unwrap(),
+        "{}{}",
+        output_file.split('.').next().unwrap(),
         ".feather"
     ))
     .to_path_buf();
@@ -109,16 +125,17 @@ fn main() {
     };
 
     // It works for ipc, weird...
-    LazyCsvReader::new(&args.output_file)
+    LazyCsvReader::new(&output_file)
         .finish()
         .unwrap()
         .sink_ipc(output_file_wo_csv, ipc_args)
         .expect("Error writing feather file.");
 
     pb.finish_with_message("Conversion done!");
+    // delete the csv if you want to cover your tracks
     if !args.csv {
         Command::new("rm")
-            .arg(&args.output_file)
+            .arg(&output_file)
             .status()
             .expect("Failed to delete csv file.");
     }
