@@ -316,7 +316,7 @@ impl MDPPBank {
 
     // see if this is real data or dummy events/extended timestamp
     fn check_subheader(&mut self, data_word: u32) -> bool {
-        let subheader = data_word >> 28 & bitmasks::THREE_BIT;
+        let subheader = data_word >> 28 & bitmasks::TWO_BIT;
         match subheader {
             0 => false, // dummy event
             1 => true,  // actual data
