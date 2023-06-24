@@ -1,19 +1,9 @@
 use crate::mdpp_bank::MDPPBank;
 use crate::sis3820::ScalerBank;
+use crate::v785_bank::v785Bank;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
-
-// // enum that describes the currently implemented bank types
-// enum BankTypes {
-//     MDPPBank(MDPPBank),
-//     ScalerBank(ScalerBank),
-// }
-
-// // This is create some amount of division between the unpacker and the writer.
-// pub trait WriteData {
-//     fn write_data(&mut self, _bank_data: &mut BankTypes) {}
-// }
 
 pub struct CSVFile {
     first_call: bool,
@@ -84,10 +74,8 @@ impl CSVScaler {
             .map(|i| format!("chan_{}", i))
             .collect::<Vec<String>>()
             .join(",");
-        if self.first_call {
-            writeln!(self.file, "{}", chan_str).unwrap();
-            self.first_call = false;
-        }
+        writeln!(self.file, "{}", chan_str).unwrap();
+        self.first_call = false;
     }
 
     pub fn write_data(&mut self, bank_data: &mut ScalerBank) {
@@ -107,5 +95,48 @@ impl CSVScaler {
                 .join(",")
         )
         .unwrap();
+    }
+}
+
+/// Structs for the v785
+
+pub struct CSVv785 {
+    first_call: bool,
+    file: BufWriter<File>,
+}
+
+impl CSVv785 {
+    pub fn new(filename: &str) -> CSVv785 {
+        CSVv785 {
+            first_call: true,
+            file: BufWriter::new(File::create(filename).unwrap()),
+        }
+    }
+
+    fn write_header(&mut self) {
+        // write the csv header
+        writeln!(self.file, "module,channel,adc,evt_ts").unwrap();
+        self.first_call = false;
+    }
+
+    pub fn write_data(&mut self, bank_data: &mut v785Bank) {
+        // check if we need to write the header
+        if self.first_call {
+            self.write_header();
+        }
+
+        // the v785 data is a bit different and is already stored as a vector
+        // loop through the hits
+        for hit in bank_data.hits.iter() {
+            for i in 0..32 {
+                //                let value_str = hit.values[i as usize].to_string();
+                writeln!(
+                    self.file,
+                    "{},{},{},{}",
+                    0, i, hit.values[i as usize], hit.evt
+                )
+                .unwrap();
+            }
+        }
     }
 }
