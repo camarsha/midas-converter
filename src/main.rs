@@ -31,7 +31,7 @@ struct Args {
     diagnostic: bool,
     #[arg(long, short, default_value_t = false)]
     csv: bool,
-    #[arg(long, short, default_value_t = true)]
+    #[arg(long, short, default_value_t = false)]
     parquet: bool,
     #[arg(long, short, default_value_t = false)]
     feather: bool,
@@ -118,7 +118,7 @@ fn main() {
     // remove file if we created it
     if args.input_file.contains("lz4") {
         Command::new("rm")
-            .arg(filename)
+            .arg(Path::new(&filename))
             .status()
             .expect("Failed to delete file.");
     }
