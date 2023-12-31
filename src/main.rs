@@ -175,15 +175,15 @@ fn main() {
     ];
 
     let col_types = vec![
-        DataType::UInt32,
-        DataType::UInt32,
-        DataType::UInt32,
-        DataType::UInt32,
-        DataType::UInt32,
-        DataType::UInt32,
-        DataType::UInt64,
-        DataType::Boolean,
-        DataType::UInt64,
+        DataType::UInt32, // module id
+        DataType::UInt32, // channel id
+        DataType::UInt32, // adc
+        DataType::UInt32, // long integral 
+        DataType::UInt32, // short integral
+        DataType::UInt32, // tdc
+        DataType::UInt64, // trigger dt
+        DataType::Boolean, // Pileup flag
+        DataType::UInt64, // Event or timestamp
     ];
 
     for (&col, dt) in columns.iter().zip(col_types.iter()) {
