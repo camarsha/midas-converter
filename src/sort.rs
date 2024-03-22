@@ -6,7 +6,15 @@ use crate::write_data::{CSVFile, CSVScaler, CSVv785};
 use indicatif::ProgressBar;
 use midasio::read::file::FileView;
 use std::collections::HashMap;
+use std::io::{stdin, stdout, Write};
 use std::time::Duration;
+
+fn strip_trailing_newline(input: &str) -> &str {
+    input
+        .strip_suffix("\r\n")
+        .or(input.strip_suffix('\n'))
+        .unwrap_or(input)
+}
 
 pub struct MDPPSort {
     filename: String,
@@ -60,18 +68,30 @@ impl MDPPSort {
                         continue;
                     }
                     // find the information associated with the bank name
-                    let m: &module_config::Module = self
-                        .config
-                        .modules
-                        .iter()
-                        .find(|&m| m.name == bank.name())
-                        .unwrap();
-                    // call the MDPPBank structure associated with midas bank
-                    bank_hash.get_mut(&m.name).unwrap().parse(
-                        &m.mod_type.to_string(),
-                        m.nchannels,
-                        bank.data_slice(),
-                    );
+                    let m: Option<&module_config::Module> =
+                        self.config.modules.iter().find(|&m| m.name == bank.name());
+                    // call the MDPPBank structure associated with midas bank, if the bank name is invalid let the user know.
+                    match m {
+                        Some(m) => bank_hash.get_mut(&m.name).unwrap().parse(
+                            &m.mod_type.to_string(),
+                            m.nchannels,
+                            bank.data_slice(),
+                        ),
+                        None => {
+                            println!("No bank matching name {}", bank.name());
+                            println!("Press enter to continue, enter any other string to quit.");
+                            let mut user_choice = String::new();
+                            let _ = stdout().flush();
+                            stdin()
+                                .read_line(&mut user_choice)
+                                .expect("A valid string was not entered");
+                            if strip_trailing_newline(&user_choice).is_empty() {
+                                continue;
+                            } else {
+                                panic! {"User has aborted reading of file after invalid bank name."};
+                            }
+                        }
+                    }
                 }
             } else if event.id() == 2 {
                 for bank in event {
