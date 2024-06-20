@@ -4,7 +4,7 @@
 pub const ONE_BIT: u32 = 0x1;
 pub const TWO_BIT: u32 = 0x3;
 pub const THREE_BIT: u32 = 0x7;
-pub const _FOUR_BIT: u32 = 0xF;
+pub const FOUR_BIT: u32 = 0xF;
 pub const FIVE_BIT: u32 = 0x1F;
 pub const SEVEN_BIT: u32 = 0x7F;
 pub const EIGHT_BIT: u32 = 0xFF;

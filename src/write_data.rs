@@ -1,5 +1,6 @@
 use crate::mdpp_bank::MDPPBank;
 use crate::sis3820::ScalerBank;
+use crate::v1730_bank::v1730Bank;
 use crate::v785_bank::v785Bank;
 use std::fs::File;
 use std::io::BufWriter;
@@ -137,6 +138,43 @@ impl CSVv785 {
                 )
                 .unwrap();
             }
+        }
+    }
+}
+
+/// v1730
+pub struct CSVv1730 {
+    first_call: bool,
+    file: BufWriter<File>,
+}
+
+impl CSVv1730 {
+    pub fn new(filename: &str) -> Self {
+        CSVv1730 {
+            first_call: true,
+            file: BufWriter::new(File::create(filename).unwrap()),
+        }
+    }
+
+    fn write_header(&mut self) {
+        // write the csv header
+        writeln!(self.file, "channel,long,coarse_time,time").unwrap();
+        self.first_call = false;
+    }
+
+    pub fn write_data(&mut self, bank_data: &mut v1730Bank) {
+        // check if we need to write the header
+        if self.first_call {
+            self.write_header();
+        }
+
+        for hit in bank_data.hits.iter() {
+            writeln!(
+                self.file,
+                "{},{},{},{}",
+                hit.channel, hit.long, hit.coarse_time, hit.time
+            )
+            .unwrap();
         }
     }
 }
