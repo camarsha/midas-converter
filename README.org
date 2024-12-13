@@ -1,0 +1,38 @@
+* Overview
+
+This crate provides a simple command line tool to convert MIDAS files to column data formats such as csv, parquet, and feather (IPC). To build the tool you need to install rust, download the crate, and run ~cargo build --release~. The binary file will be in ~/target/release/~
+
+
+First you will need to specify the VME modules in your system that you want to convert with a config file written in TOML:
+
+#+begin_src toml
+[[modules]]
+name = "scp1" # midas bank name
+address = "0xE1FA0000" # vme address
+mod_type = "scp" # type of vme module
+nchannels = 16 # number of channels in the module
+setup_file = "./user-config-files/hpge-scp-config.scm" # unused
+
+#+end_src
+
+This file is fore a Mesytec MDPP 16 channel digitizer with scp FPGA. Limited support is also available for v785 ADCs via:
+
+#+begin_src toml
+[[modules]]
+name = "ADC1"
+address = "0x1F11"
+mod_type = "adc"
+nchannels = 32
+setup_file = "setup-file-namescp.dat"
+#+end_src
+
+Once you have this config file and some midas data:
+
+#+begin_src bash
+  midas-converter data-file.mid.lz4 config-file.toml -p # parquet conversion
+  midas-converter data-file.mid.lz4 config-file.toml -f # feather conversion
+  midas-converter data-file.mid.lz4 config-file.toml -c # csv conversion
+  
+#+end_src
+
+The ~-o~ flag allows you to rename the output file. ~--chunk-size~ will result in more frequent writes to lower the memory usage of the program.
