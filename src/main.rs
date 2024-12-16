@@ -244,7 +244,7 @@ fn main() {
             .arg("-f")
             .arg(args.input_file.clone())
             .status()
-            .expect("Decompression failed");
+            .unwrap_or_else(|_| panic!("The command lz4 -d -f {} failed!", args.input_file.clone()));
         println!("{}", args.input_file.replace(".lz4", ""));
         args.input_file.replace(".lz4", "")
     } else {
@@ -252,8 +252,8 @@ fn main() {
     };
 
     // see midasio package documentation for details
-    let contents = fs::read(&filename).unwrap();
-    let file_view = FileView::try_from(&contents[..]).unwrap();
+    let contents = fs::read(&filename).expect("Failed to read midas file.");
+    let file_view = FileView::try_from(&contents[..]).expect("Failed to create FileView of midas file.");
     // if we want diagnostics
     if args.diagnostic {
         let (one, two, three) = diagnostics::event_diagnostics(&file_view);

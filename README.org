@@ -2,6 +2,7 @@
 
 This crate provides a simple command line tool to convert MIDAS files to column data formats such as csv, parquet, and feather (IPC). To build the tool you need to install rust, download the crate, and run ~cargo build --release~. The binary file will be in ~/target/release/~
 
+*This program depends on the lz4 command line utility!*
 
 First you will need to specify the VME modules in your system that you want to convert with a config file written in TOML:
 
